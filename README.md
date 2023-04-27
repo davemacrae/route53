@@ -29,6 +29,6 @@ You must supply either an IP address to use or a domain to copy the IP address f
 
 ## ToDo
 
-TODO: Compare current A record to MY_IP and only update if necessary
-TODO: Error handling
-TODO: ~~Pass domain or IP as arguments~~
+TODO: Compare current A record to MY_IP and only update if necessary<br>
+TODO: Error handling<br>
+TODO: ~~Pass domain or IP as arguments~~<br>
