@@ -1,4 +1,8 @@
-#!/usr/bin/python
+#!/usr/bin/env python
+
+# pylint: disable=consider-using-f-string
+# pylint: disable=raise-missing-from
+
 '''
     TODO: Compare current A record to MY_IP and only update if necessary
     TODO: Error handling
@@ -8,6 +12,7 @@
 import socket
 import re
 import argparse
+import botocore
 import boto3
 
 def domain_check(domain):
@@ -85,17 +90,39 @@ def get_ips_by_dns_lookup(target, port=None):
         print (f"Look up IP address for {target}")
 
     return list(map(lambda x: x[4][0],
-                    socket.getaddrinfo('{}.'.format(target),port,type=socket.SOCK_STREAM))) # pylint: disable=consider-using-f-string
+                    socket.getaddrinfo('{}.'.format(target),port,type=socket.SOCK_STREAM)))
+
+def boto_error_dump (err):
+    ''' Function to dump error from a BOTO call '''
+    if err.response['Error']['Code'] == 'InternalError': # Generic error
+        # We grab the message, request ID, and HTTP code to give to customer support
+        print('Error Message: {}'.format(err.response['Error']['Message']))
+        print('Request ID: {}'.format(err.response['ResponseMetadata']['RequestId']))
+        print('Http code: {}'.format(err.response['ResponseMetadata']['HTTPStatusCode']))
+    else:
+        raise err
 
 
 def upsert (ip_address):
     ''' Main Programme '''
     client = boto3.client('route53')
 
-    response = client.get_hosted_zone_count()
+    try:
+        response = client.get_hosted_zone_count()
+
+    except botocore.exceptions.NoCredentialsError as err:
+        print (f"BOTO Error: Invalid credentials: {err}")
+        exit(-1)
+    except botocore.exceptions.ClientError as err:
+        boto_error_dump(err)
 
     # How many hosted zones do we need to update
     num_zones = response['HostedZoneCount']
+
+    # Check that we have some hosted zones
+    if num_zones == 0:
+        print ("Can't find any configured Hosted Zones")
+        return
 
     zones = client.list_hosted_zones()
 
@@ -130,10 +157,11 @@ def upsert (ip_address):
         if args.dry_run:
             print (f"DRY-RUN: Update {domain} to {ip}")
         else:
-            # TODO: Error handling
-            client.change_resource_record_sets(ChangeBatch=changes, HostedZoneId=zone_id)
-
-
+            try:
+                client.change_resource_record_sets(ChangeBatch=changes, HostedZoneId=zone_id)
+            except botocore.exceptions.ClientError as err:
+                boto_error_dump(err)
+    return
 
 if __name__ == '__main__':
 
