@@ -12,6 +12,7 @@
 import socket
 import re
 import argparse
+import sys
 import botocore
 import boto3
 
@@ -24,6 +25,7 @@ def domain_check(domain):
         r'([a-zA-Z]{2,13}|[a-zA-Z0-9-]{2,30}.[a-zA-Z]{2,3})$'
     )
     return pattern.match(domain)
+
 
 def ip_check(ip_address):
     ''' Check that we have a valid IP address '''
@@ -42,6 +44,8 @@ def ip_check(ip_address):
 
 def process_arguments():
     ''' Process the command line arguments '''
+
+    # Validation Methods
     class IPAction(argparse.Action):
         ''' This will raise an exception if the IP address supplied is not valid '''
         def __call__(self, parser, namespace, values, option_string=None):
@@ -89,8 +93,14 @@ def get_ips_by_dns_lookup(target, port=None):
     if args.verbose:
         print (f"Look up IP address for {target}")
 
-    return list(map(lambda x: x[4][0],
-                    socket.getaddrinfo('{}.'.format(target),port,type=socket.SOCK_STREAM)))
+    try:
+        ips = list(map(lambda x: x[4][0],
+                       socket.getaddrinfo('{}.'.format(target),port,type=socket.SOCK_STREAM)))
+    except socket.gaierror:
+        print (f"Invalid Domain: {target}")
+        sys.exit(-1)
+
+    return ips
 
 def boto_error_dump (err):
     ''' Function to dump error from a BOTO call '''
