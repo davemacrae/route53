@@ -85,7 +85,7 @@ def get_ips_by_dns_lookup(target, port=None):
         print (f"Look up IP address for {target}")
 
     return list(map(lambda x: x[4][0],
-                    socket.getaddrinfo('{}.'.format(target),port,type=socket.SOCK_STREAM)))
+                    socket.getaddrinfo('{}.'.format(target),port,type=socket.SOCK_STREAM))) # pylint: disable=consider-using-f-string
 
 
 def upsert (ip_address):
@@ -142,10 +142,9 @@ if __name__ == '__main__':
     if args.ip:
         ip = args.ip
     else:
-        """
-            TODO: We should move this to the domain validator function to check that it
-            is a valid domain
-        """
+        #    TODO: We should move this to the domain validator function to check that it
+        #    is a valid domain
+
         ip = get_ips_by_dns_lookup(args.domain)[0]
 
     upsert (ip)
