@@ -14,6 +14,8 @@ My Vodafone router has a DDNS client for no-ip.com and will update the record wh
 
 This script is designed to grab that IP and update the A record of all my domains.
 
+Note, because this uses the "upsert" command the script will create an A record is one does not exist.
+
 ## Usage
 
     usage: upsert.py [-h] (--ip IP | --domain DOMAIN) [--verbose] [--dry-run]
@@ -30,5 +32,5 @@ You must supply either an IP address to use or a domain to copy the IP address f
 ## ToDo
 
 TODO: Compare current A record to MY_IP and only update if necessary<br>
-TODO: Error handling<br>
+TODO: ~~Error handling~~<br>
 TODO: ~~Pass domain or IP as arguments~~<br>
