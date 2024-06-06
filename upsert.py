@@ -19,6 +19,7 @@ import boto3
 
 def whatsmyip():
     ''' Get the current external IP'''
+    # pylint: disable=used-before-assignment
 
     resolver = dns.resolver.Resolver(configure=False)
 
@@ -26,7 +27,17 @@ def whatsmyip():
     domain_name = 'myip.opendns.com'
 
     # Use the resolver to perform a DNS lookup for the domain's IP address
-    current_ip = resolver.resolve(domain_name)[0].address
+    try:
+        current_ip = resolver.resolve(domain_name)[0].address
+    except dns.resolver.NXDOMAIN:
+        print (f"Cannot resolve {domain_name}")
+        sys.exit(-1)
+    except (dns.resolver.LifetimeTimeout,
+            dns.resolver.YXDOMAIN,
+            dns.resolver.NoAnswer,
+            dns.resolver.NoNameservers) as err:
+        print("help, something went wrong:", err)
+
     if args.verbose:
         print (f"Current external IP is {current_ip}")
 
