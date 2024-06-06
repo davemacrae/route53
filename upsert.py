@@ -222,9 +222,6 @@ if __name__ == '__main__':
     if args.ip:
         ip = args.ip
     else:
-        #    TODO: We should move this to the domain validator function to check that it
-        #    is a valid domain
-
         ip = get_ips_by_dns_lookup(args.domain)[0]
 
     upsert (ip)
