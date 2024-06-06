@@ -4,8 +4,8 @@
 # pylint: disable=raise-missing-from
 
 '''
-    TODO: Compare current A record to MY_IP and only update if necessary
-    TODO: Error handling
+    DONE: Compare current A record to MY_IP and only update if necessary
+    DONE: Error handling
     DONE: Pass domain or IP as arguments
 '''
 
@@ -13,8 +13,25 @@ import socket
 import re
 import argparse
 import sys
+import dns.resolver
 import botocore
 import boto3
+
+def whatsmyip():
+    ''' Get the current external IP'''
+
+    resolver = dns.resolver.Resolver(configure=False)
+
+    resolver.nameservers = get_ips_by_dns_lookup('resolver1.opendns.com')
+    domain_name = 'myip.opendns.com'
+
+    # Use the resolver to perform a DNS lookup for the domain's IP address
+    current_ip = resolver.resolve(domain_name)[0].address
+    if args.verbose:
+        print (f"Current external IP is {current_ip}")
+
+    return current_ip
+
 
 def domain_check(domain):
     ''' Check that the format of the domain is correct'''
@@ -136,11 +153,25 @@ def upsert (ip_address):
 
     zones = client.list_hosted_zones()
 
+    # get the IP external IP address of our router
+    router_ip = whatsmyip()
+
     for i in range(num_zones):
         # The Id string is /hosted/XXXXXXXXXXX but we only need the XXXXXXXXXXX part
         zone_id = zones['HostedZones'][i]['Id'].split('/')[2]
         # This gives us the base domain name with a trailing "." which we remove
         domain = zones['HostedZones'][i]['Name'][:-1]
+
+        # We only want to make changes where the IP address of the A record doesn't match so
+        # lets find out the current domain A record IP address and compare it the router IP.
+        domain_ip = get_ips_by_dns_lookup(domain)[0]
+        if args.verbose:
+            print (f"Current ip of {domain} is {domain_ip}")
+
+        if domain_ip == router_ip:
+            if args.verbose:
+                print (f"No update needed for {domain}")
+            continue
 
         changes = {
             'Changes': [
@@ -162,10 +193,10 @@ def upsert (ip_address):
         }
 
         if args.verbose:
-            print (f"Update {domain} to {ip}")
+            print (f"Update {domain} to {ip_address}")
 
         if args.dry_run:
-            print (f"DRY-RUN: Update {domain} to {ip}")
+            print (f"DRY-RUN: Update {domain} to {ip_address}")
         else:
             try:
                 client.change_resource_record_sets(ChangeBatch=changes, HostedZoneId=zone_id)
